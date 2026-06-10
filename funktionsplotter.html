@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funktionsplotter</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-tertiary: #1a2234;
+            --border: #2d3a52;
+            --text-primary: #e8eef5;
+            --text-secondary: #94a3b8;
+            --accent-1: #f472b6;
+            --accent-2: #60a5fa;
+            --accent-3: #34d399;
+            --accent-4: #fbbf24;
+            --accent-5: #a78bfa;
+            --grid-major: #1e293b;
+            --grid-minor: #141b2a;
+            --axis: #475569;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            overflow-y: auto;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--accent-2), var(--accent-1));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+        }
+
+        /* Function Input */
+        .function-input-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .function-input {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .function-input:focus {
+            border-color: var(--accent-2);
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+        }
+
+        .function-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 10px 14px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            background: var(--border);
+            border-color: var(--text-secondary);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-2), #3b82f6);
+            border: none;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-danger {
+            background: rgba(244, 114, 182, 0.1);
+            border-color: rgba(244, 114, 182, 0.3);
+            color: var(--accent-1);
+            padding: 6px 10px;
+            font-size: 0.75rem;
+        }
+
+        .btn-danger:hover {
+            background: rgba(244, 114, 182, 0.2);
+        }
+
+        /* Function List */
+        .function-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .function-item {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .function-item:hover {
+            border-color: var(--text-secondary);
+        }
+
+        .function-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .function-text {
+            flex: 1;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+        }
+
+        /* View Controls */
+        .view-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .control-input {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            outline: none;
+            width: 100%;
+        }
+
+        .control-input:focus {
+            border-color: var(--accent-2);
+        }
+
+        /* Presets */
+        .presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .preset-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .preset-btn:hover {
+            border-color: var(--accent-2);
+            color: var(--accent-2);
+        }
+
+        /* Canvas Area */
+        .canvas-container {
+            position: relative;
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+
+        #coordinateSystem {
+            display: block;
+            cursor: crosshair;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        .tooltip-coords {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .tooltip-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+        }
+
+        /* Zoom Controls */
+        .zoom-controls {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .zoom-btn:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-2);
+        }
+
+        /* Info Panel */
+        .info-panel {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            min-width: 180px;
+        }
+
+        .info-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            margin-bottom: 6px;
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+        }
+
+        .info-value {
+            color: var(--text-primary);
+        }
+
+        /* Empty State */
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 0.875rem;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <h1>📐 Funktionsplotter</h1>
+            
+            <div class="section">
+                <span class="section-title">Funktion hinzufügen</span>
+                <div class="function-input-group">
+                    <input type="text" class="function-input" id="functionInput" placeholder="z.B. x^2, sin(x), sqrt(x)" value="x^2">
+                    <button class="btn btn-primary" onclick="addFunction()">+</button>
+                </div>
+                <div class="presets">
+                    <button class="preset-btn" onclick="setPreset('x^2')">x²</button>
+                    <button class="preset-btn" onclick="setPreset('sin(x)')">sin</button>
+                    <button class="preset-btn" onclick="setPreset('cos(x)')">cos</button>
+                    <button class="preset-btn" onclick="setPreset('tan(x)')">tan</button>
+                    <button class="preset-btn" onclick="setPreset('sqrt(x)')">√</button>
+                    <button class="preset-btn" onclick="setPreset('log(x)')">log</button>
+                    <button class="preset-btn" onclick="setPreset('abs(x)')">|x|</button>
+                    <button class="preset-btn" onclick="setPreset('e^x')">eˣ</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <span class="section-title">Aktive Funktionen</span>
+                <div class="function-list" id="functionList">
+                    <!-- Functions will be added here -->
+                </div>
+            </div>
+
+            <div class="section">
+                <span class="section-title">Ansicht</span>
+                <div class="view-controls">
+                    <div class="control-group">
+                        <span class="control-label">X-Min</span>
+                        <input type="number" class="control-input" id="xMin" value="-10" onchange="updateView()">
+                    </div>
+                    <div class="control-group">
+                        <span class="control-label">X-Max</span>
+                        <input type="number" class="control-input" id="xMax" value="10" onchange="updateView()">
+                    </div>
+                    <div class="control-group">
+                        <span class="control-label">Y-Min</span>
+                        <input type="number" class="control-input" id="yMin" value="-10" onchange="updateView()">
+                    </div>
+                    <div class="control-group">
+                        <span class="control-label">Y-Max</span>
+                        <input type="number" class="control-input" id="yMax" value="10" onchange="updateView()">
+                    </div>
+                </div>
+                <button class="btn" onclick="resetView()" style="margin-top: 8px;">Ansicht zurücksetzen</button>
+            </div>
+
+            <div class="section">
+                <span class="section-title">Hilfe</span>
+                <p style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6;">
+                    Verwenden Sie <code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">x</code> als Variable. <br>
+                    Operatoren: <code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">+ - * / ^</code><br>
+                    Funktionen: <code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">sin, cos, tan, sqrt, log, abs, exp</code>
+                </p>
+            </div>
+        </aside>
+
+        <main class="canvas-container">
+            <canvas id="coordinateSystem"></canvas>
+            
+            <div class="tooltip" id="tooltip">
+                <div class="tooltip-coords" id="tooltipCoords">x = 0</div>
+                <div class="tooltip-value" id="tooltipValue">f(x) = 0</div>
+            </div>
+
+            <div class="info-panel">
+                <div class="info-title">Koordinaten</div>
+                <div class="info-item">
+                    <span class="info-label">X-Bereich:</span>
+                    <span class="info-value" id="infoXRange">[-10, 10]</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Y-Bereich:</span>
+                    <span class="info-value" id="infoYRange">[-10, 10]</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Maus:</span>
+                    <span class="info-value" id="infoMouse">-</span>
+                </div>
+            </div>
+
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomIn()">+</button>
+                <button class="zoom-btn" onclick="zoomOut()">−</button>
+                <button class="zoom-btn" onclick="resetZoom()">⌂</button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('coordinateSystem');
+        const ctx = canvas.getContext('2d');
+        const tooltip = document.getElementById('tooltip');
+        const tooltipCoords = document.getElementById('tooltipCoords');
+        const tooltipValue = document.getElementById('tooltipValue');
+
+        // State
+        let functions = [];
+        let colors = ['#f472b6', '#60a5fa', '#34d399', '#fbbf24', '#a78bfa'];
+        let colorIndex = 0;
+        
+        let view = {
+            xMin: -10,
+            xMax: 10,
+            yMin: -10,
+            yMax: 10
+        };
+
+        let isDragging = false;
+        let lastMouse = { x: 0, y: 0 };
+
+        // Initialize
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            draw();
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Add initial function
+        addFunction();
+
+        // Function management
+        function addFunction() {
+            const input = document.getElementById('functionInput');
+            const expr = input.value.trim();
+            
+            if (!expr) return;
+
+            const func = {
+                id: Date.now(),
+                expr: expr,
+                color: colors[colorIndex % colors.length],
+                fn: parseFunction(expr)
+            };
+
+            if (!func.fn) {
+                alert('Ungültiger Funktionsausdruck');
+                return;
+            }
+
+            functions.push(func);
+            colorIndex++;
+            input.value = '';
+            updateFunctionList();
+            draw();
+        }
+
+        function removeFunction(id) {
+            functions = functions.filter(f => f.id !== id);
+            updateFunctionList();
+            draw();
+        }
+
+        function updateFunctionList() {
+            const list = document.getElementById('functionList');
+            list.innerHTML = functions.map(f => `
+                <div class="function-item">
+                    <div class="function-color" style="background: ${f.color}"></div>
+                    <span class="function-text">f(x) = ${f.expr}</span>
+                    <button class="btn btn-danger" onclick="removeFunction(${f.id})">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function setPreset(expr) {
+            document.getElementById('functionInput').value = expr;
+        }
+
+        // Parse mathematical expression
+        function parseFunction(expr) {
+            try {
+                // Replace common mathematical notation
+                let code = expr
+                    .replace(/\^/g, '**')
+                    .replace(/sin\(/g, 'Math.sin(')
+                    .replace(/cos\(/g, 'Math.cos(')
+                    .replace(/tan\(/g, 'Math.tan(')
+                    .replace(/sqrt\(/g, 'Math.sqrt(')
+                    .replace(/log\(/g, 'Math.log(')
+                    .replace(/abs\(/g, 'Math.abs(')
+                    .replace(/exp\(/g, 'Math.exp(')
+                    .replace(/pi/g, 'Math.PI')
+                    .replace(/e(?![a-z])/g, 'Math.E');
+
+                return new Function('x', `return ${code}`);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Coordinate transformations
+        function worldToScreen(x, y) {
+            const width = canvas.width;
+            const height = canvas.height;
+            const screenX = (x - view.xMin) / (view.xMax - view.xMin) * width;
+            const screenY = height - (y - view.yMin) / (view.yMax - view.yMin) * height;
+            return { x: screenX, y: screenY };
+        }
+
+        function screenToWorld(screenX, screenY) {
+            const width = canvas.width;
+            const height = canvas.height;
+            const x = view.xMin + (screenX / width) * (view.xMax - view.xMin);
+            const y = view.yMin + ((height - screenY) / height) * (view.yMax - view.yMin);
+            return { x, y };
+        }
+
+        // Drawing
+        function draw() {
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Clear
+            ctx.fillStyle = '#0a0e1a';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw grid
+            drawGrid();
+
+            // Draw axes
+            drawAxes();
+
+            // Draw functions
+            functions.forEach(func => {
+                if (func.fn) drawFunction(func);
+            });
+        }
+
+        function drawGrid() {
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.strokeStyle = '#141b2a';
+            ctx.lineWidth = 1;
+
+            // Vertical lines
+            const xStep = calculateStep(view.xMax - view.xMin);
+            for (let x = Math.ceil(view.xMin / xStep) * xStep; x <= view.xMax; x += xStep) {
+                const pos = worldToScreen(x, 0);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, 0);
+                ctx.lineTo(pos.x, height);
+                ctx.stroke();
+            }
+
+            // Horizontal lines
+            const yStep = calculateStep(view.yMax - view.yMin);
+            for (let y = Math.ceil(view.yMin / yStep) * yStep; y <= view.yMax; y += yStep) {
+                const pos = worldToScreen(0, y);
+                ctx.beginPath();
+                ctx.moveTo(0, pos.y);
+                ctx.lineTo(width, pos.y);
+                ctx.stroke();
+            }
+
+            // Major grid lines
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1.5;
+
+            for (let x = Math.ceil(view.xMin / (xStep * 5)) * (xStep * 5); x <= view.xMax; x += xStep * 5) {
+                const pos = worldToScreen(x, 0);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, 0);
+                ctx.lineTo(pos.x, height);
+                ctx.stroke();
+            }
+
+            for (let y = Math.ceil(view.yMin / (yStep * 5)) * (yStep * 5); y <= view.yMax; y += yStep * 5) {
+                const pos = worldToScreen(0, y);
+                ctx.beginPath();
+                ctx.moveTo(0, pos.y);
+                ctx.lineTo(width, pos.y);
+                ctx.stroke();
+            }
+        }
+
+        function calculateStep(range) {
+            const rough = range / 10;
+            const magnitude = Math.pow(10, Math.floor(Math.log10(rough)));
+            const normalized = rough / magnitude;
+            
+            if (normalized < 1.5) return magnitude;
+            if (normalized < 3) return 2 * magnitude;
+            if (normalized < 7) return 5 * magnitude;
+            return 10 * magnitude;
+        }
+
+        function drawAxes() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const origin = worldToScreen(0, 0);
+
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2;
+            ctx.font = '12px JetBrains Mono';
+            ctx.fillStyle = '#94a3b8';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+
+            // X-axis
+            ctx.beginPath();
+            ctx.moveTo(0, origin.y);
+            ctx.lineTo(width, origin.y);
+            ctx.stroke();
+
+            // Y-axis
+            ctx.beginPath();
+            ctx.moveTo(origin.x, 0);
+            ctx.lineTo(origin.x, height);
+            ctx.stroke();
+
+            // X labels
+            const xStep = calculateStep(view.xMax - view.xMin);
+            for (let x = Math.ceil(view.xMin / xStep) * xStep; x <= view.xMax; x += xStep) {
+                if (Math.abs(x) < 0.0001) continue;
+                const pos = worldToScreen(x, 0);
+                ctx.fillText(formatNumber(x), pos.x, origin.y + 8);
+            }
+
+            // Y labels
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            const yStep = calculateStep(view.yMax - view.yMin);
+            for (let y = Math.ceil(view.yMin / yStep) * yStep; y <= view.yMax; y += yStep) {
+                if (Math.abs(y) < 0.0001) continue;
+                const pos = worldToScreen(0, y);
+                ctx.fillText(formatNumber(y), origin.x - 8, pos.y);
+            }
+
+            // Origin label
+            if (view.xMin <= 0 && view.xMax >= 0 && view.yMin <= 0 && view.yMax >= 0) {
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'top';
+                ctx.fillText('0', origin.x - 6, origin.y + 6);
+            }
+        }
+
+        function formatNumber(n) {
+            if (Math.abs(n) >= 1000) return n.toFixed(0);
+            if (Math.abs(n) >= 1) return n.toFixed(1).replace(/\.0$/, '');
+            if (Math.abs(n) >= 0.01) return n.toFixed(2);
+            return n.toExponential(1);
+        }
+
+        function drawFunction(func) {
+            const width = canvas.width;
+            ctx.strokeStyle = func.color;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+
+            let first = true;
+            const step = (view.xMax - view.xMin) / width;
+
+            for (let px = 0; px <= width; px++) {
+                const x = view.xMin + px * step;
+                let y;
+                
+                try {
+                    y = func.fn(x);
+                } catch (e) {
+                    first = true;
+                    continue;
+                }
+
+                if (!isFinite(y) || Math.abs(y) > 1e10) {
+                    first = true;
+                    continue;
+                }
+
+                const pos = worldToScreen(x, y);
+
+                if (first) {
+                    ctx.moveTo(pos.x, pos.y);
+                    first = false;
+                } else {
+                    ctx.lineTo(pos.x, pos.y);
+                }
+            }
+
+            ctx.stroke();
+        }
+
+        // View controls
+        function updateView() {
+            view.xMin = parseFloat(document.getElementById('xMin').value);
+            view.xMax = parseFloat(document.getElementById('xMax').value);
+            view.yMin = parseFloat(document.getElementById('yMin').value);
+            view.yMax = parseFloat(document.getElementById('yMax').value);
+            updateInfoPanel();
+            draw();
+        }
+
+        function resetView() {
+            view = { xMin: -10, xMax: 10, yMin: -10, yMax: 10 };
+            document.getElementById('xMin').value = -10;
+            document.getElementById('xMax').value = 10;
+            document.getElementById('yMin').value = -10;
+            document.getElementById('yMax').value = 10;
+            updateInfoPanel();
+            draw();
+        }
+
+        function zoomIn() {
+            const xCenter = (view.xMin + view.xMax) / 2;
+            const yCenter = (view.yMin + view.yMax) / 2;
+            const xRange = (view.xMax - view.xMin) / 1.5;
+            const yRange = (view.yMax - view.yMin) / 1.5;
+            
+            view.xMin = xCenter - xRange / 2;
+            view.xMax = xCenter + xRange / 2;
+            view.yMin = yCenter - yRange / 2;
+            view.yMax = yCenter + yRange / 2;
+            
+            updateViewInputs();
+        }
+
+        function zoomOut() {
+            const xCenter = (view.xMin + view.xMax) / 2;
+            const yCenter = (view.yMin + view.yMax) / 2;
+            const xRange = (view.xMax - view.xMin) * 1.5;
+            const yRange = (view.yMax - view.yMin) * 1.5;
+            
+            view.xMin = xCenter - xRange / 2;
+            view.xMax = xCenter + xRange / 2;
+            view.yMin = yCenter - yRange / 2;
+            view.yMax = yCenter + yRange / 2;
+            
+            updateViewInputs();
+        }
+
+        function resetZoom() {
+            resetView();
+        }
+
+        function updateViewInputs() {
+            document.getElementById('xMin').value = parseFloat(view.xMin.toFixed(4));
+            document.getElementById('xMax').value = parseFloat(view.xMax.toFixed(4));
+            document.getElementById('yMin').value = parseFloat(view.yMin.toFixed(4));
+            document.getElementById('yMax').value = parseFloat(view.yMax.toFixed(4));
+            updateInfoPanel();
+            draw();
+        }
+
+        function updateInfoPanel() {
+            document.getElementById('infoXRange').textContent = `[${formatNumber(view.xMin)}, ${formatNumber(view.xMax)}]`;
+            document.getElementById('infoYRange').textContent = `[${formatNumber(view.yMin)}, ${formatNumber(view.yMax)}]`;
+        }
+
+        // Mouse interaction
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMouse = { x: e.clientX, y: e.clientY };
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const worldPos = screenToWorld(mouseX, mouseY);
+
+            document.getElementById('infoMouse').textContent = 
+                `(${formatNumber(worldPos.x)}, ${formatNumber(worldPos.y)})`;
+
+            if (isDragging) {
+                const dx = e.clientX - lastMouse.x;
+                const dy = e.clientY - lastMouse.y;
+                
+                const worldDx = dx / canvas.width * (view.xMax - view.xMin);
+                const worldDy = dy / canvas.height * (view.yMax - view.yMin);
+                
+                view.xMin -= worldDx;
+                view.xMax -= worldDx;
+                view.yMin += worldDy;
+                view.yMax += worldDy;
+                
+                updateViewInputs();
+                lastMouse = { x: e.clientX, y: e.clientY };
+            } else {
+                // Show tooltip for nearest function value
+                updateTooltip(mouseX, mouseY, worldPos.x);
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+            tooltip.classList.remove('visible');
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const worldPos = screenToWorld(mouseX, mouseY);
+
+            const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
+            
+            view.xMin = worldPos.x - (worldPos.x - view.xMin) * zoomFactor;
+            view.xMax = worldPos.x + (view.xMax - worldPos.x) * zoomFactor;
+            view.yMin = worldPos.y - (worldPos.y - view.yMin) * zoomFactor;
+            view.yMax = worldPos.y + (view.yMax - worldPos.y) * zoomFactor;
+            
+            updateViewInputs();
+        });
+
+        function updateTooltip(mouseX, mouseY, x) {
+            let nearestFunc = null;
+            let nearestY = null;
+            let minDistance = Infinity;
+
+            functions.forEach(func => {
+                try {
+                    const y = func.fn(x);
+                    if (isFinite(y)) {
+                        const pos = worldToScreen(x, y);
+                        const distance = Math.abs(pos.y - mouseY);
+                        
+                        if (distance < minDistance && distance < 50) {
+                            minDistance = distance;
+                            nearestFunc = func;
+                            nearestY = y;
+                        }
+                    }
+                } catch (e) {}
+            });
+
+            if (nearestFunc) {
+                tooltip.style.left = (mouseX + 15) + 'px';
+                tooltip.style.top = (mouseY - 40) + 'px';
+                tooltipCoords.textContent = `x = ${formatNumber(x)}`;
+                tooltipValue.textContent = `f(x) = ${formatNumber(nearestY)}`;
+                tooltipValue.style.color = nearestFunc.color;
+                tooltip.classList.add('visible');
+            } else {
+                tooltip.classList.remove('visible');
+            }
+        }
+
+        // Keyboard shortcut
+        document.getElementById('functionInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addFunction();
+        });
+    </script>
+</body>
+</html>
